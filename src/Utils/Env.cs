@@ -25,6 +25,28 @@ public class Env
         }
     }
 
+    /// <summary>
+    /// Pega um limitante para a busca de páginas
+    /// </summary>
+    public static int GetMaxPageLimitForSearch
+    {
+        get
+        {
+            return Env.GetConfigurationValue<int>("MaxPageLimit") > 0 ? Env.GetConfigurationValue<int>("MaxPageLimit") : 2;
+        }
+    }
+
+    /// <summary>
+    /// Pega a palavra chave para busca 
+    /// </summary>
+    public static string GetKeyWord
+    {
+        get
+        {
+            return !String.IsNullOrEmpty(Env.GetConfigurationValue<string>("Keyword"))  ? Env.GetConfigurationValue<string>("Keyword") : "RPA";
+        }
+    }
+
 
     private static T GetConfigurationValue<T>(string key)
     {

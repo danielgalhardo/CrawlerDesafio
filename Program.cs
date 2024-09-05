@@ -17,11 +17,13 @@ namespace CrawlerAlura
     {
         static void Main(string[] args)
         {
+            var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\"));
+
             IConfiguration configuration = new ConfigurationBuilder()
-             .SetBasePath(Path.GetDirectoryName(typeof(Program).Assembly.Location))
-             .AddJsonFile("appsettings.json", true, true)
-             .AddEnvironmentVariables()
-             .Build();
+                .SetBasePath(projectRoot)
+                .AddJsonFile("appsettings.json", true, true)
+                .AddEnvironmentVariables()
+                .Build();
 
             Env.SetConfiguration(configuration);
             var services = new ServiceCollection();
@@ -37,20 +39,22 @@ namespace CrawlerAlura
             services.AddSingleton<CrawlerFacade>();
             services.AddSingleton<AluraCourseService>();
             services.AddScoped<IAluraCourseRepository, AluraCourseRepository>();
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=C:\\Users\\galha\\source\\repos\\CrawlerAlura\\app.db"));
+            var dbPath = Path.Combine(projectRoot, "app.db");
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlite($"Data Source={dbPath}"));
             SeleniumWebDriver crawler = new SeleniumWebDriver();
             var serviceProvider = services.BuildServiceProvider();
             var worker = serviceProvider.GetService<CrawlerFacade>();
-            worker.StartCrawlingRoutine();
-
-
+            worker?.StartCrawlingRoutine();
         }
 
         public static void ConfigureLogger()
         {
+            var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\")) + "log\\";
+
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
-                .WriteTo.File(@"C:\Users\galha\Documents\TCC\Projetos\TCC_Crawler\log\", rollingInterval: RollingInterval.Day)
+                .WriteTo.File(projectRoot, rollingInterval: RollingInterval.Day)
                .CreateLogger();
         }
     }

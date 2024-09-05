@@ -35,10 +35,10 @@ namespace CrawlerAlura.src.Application.Services
                 await _repository.AddRangeAsync(aluraCoursesList);
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                throw;
+                throw new Exception(ex.Message);
             }
         }
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using System.IO;
 
 namespace CrawlerAlura.src.Infrastructure
 {
@@ -8,7 +9,11 @@ namespace CrawlerAlura.src.Infrastructure
         public ApplicationDbContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            optionsBuilder.UseSqlite("Data Source=C:\\Users\\galha\\source\\repos\\CrawlerAlura\\app.db"); 
+
+            var projectRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\"));
+
+            var dbPath = Path.Combine(projectRoot, "app.db");
+            optionsBuilder.UseSqlite($"Data Source={dbPath}");
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }
