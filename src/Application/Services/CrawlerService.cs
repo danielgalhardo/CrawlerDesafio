@@ -10,13 +10,14 @@ using System.Collections.ObjectModel;
 using CrawlerAlura.src.Domain.Entities;
 using OpenQA.Selenium.Support.UI;
 using AngleSharp.Dom;
+using System.Text.RegularExpressions;
 
 namespace CrawlerAlura.src.Application.Services
 {
     public class CrawlerService
     {
         public ILogger<CrawlerService> _logger;
-        public List<AluraCourse> courseList; 
+        public List<AluraCourse> courseList;
 
 
         public CrawlerService(ILogger<CrawlerService> logger)
@@ -40,6 +41,7 @@ namespace CrawlerAlura.src.Application.Services
 
             buttonInputSearchAlura.Click();
             WebDriverWait wait = new WebDriverWait(driver, new TimeSpan(0, 0, 30));
+            Thread.Sleep(new Random().Next(1500, 7000));
             wait.Until(driver => driver.FindElements(By.XPath("/html/body/div[2]/div[2]/section/ul/li")));
             var coursesListElement = driver.FindElements(By.XPath("/html/body/div[2]/div[2]/section/ul/li"));
 
@@ -52,58 +54,111 @@ namespace CrawlerAlura.src.Application.Services
                 Console.WriteLine($"Existem um total de {totalPages} páginas");
                 ClickNextPageButton(driver);
 
-                for (int pageCounter = 2; pageCounter < 4; pageCounter++)
+                for (int pageCounter = 2; pageCounter < 3; pageCounter++)
                 {
                     wait.Until(driver => driver.FindElements(By.XPath("/html/body/div[2]/div[2]/section/ul/li")));
                     coursesListElement = driver.FindElements(By.XPath("/html/body/div[2]/div[2]/section/ul/li"));
                     ScrapeAluraSearchPageElements(coursesListElement);
                     ClickNextPageButton(driver);
-                    Thread.Sleep(new Random().Next(1250,3500));
+                    Thread.Sleep(new Random().Next(1250, 3500));
                     driver.FindElement(By.TagName("body")).SendKeys(Keys.Escape);
 
                 }
             }
-            FindAndSetInstructorName(driver);
+            FindAndSetInstructorAndWorkload(driver);
         }
 
-        public List<AluraCourse> FindAndSetInstructorName(IWebDriver driver)
+        public List<AluraCourse> FindAndSetInstructorAndWorkload(IWebDriver driver)
         {
-            foreach(var course in this.courseList)
+            foreach (var course in this.courseList)
             {
-                if (course.Name != null && (course.Name.Contains("Curso") || course.Name.Contains("Formação")))
-                {
-                    driver.Navigate().GoToUrl(course.Link);
-                    Thread.Sleep(new Random().Next(3000, 6000));
-                    driver.FindElement(By.TagName("body")).SendKeys(Keys.Escape);
-                    WebDriverWait wait = new WebDriverWait(driver, new TimeSpan(0, 0, 30));
-                    wait.Until(driver => driver.FindElements(By.ClassName("instructor-title--name")));
-                    wait.Until(driver => driver.FindElements(By.ClassName("formacao-instrutor-nome")));
-                    var instructorElements = driver.FindElements(By.ClassName("instructor-title--name")).Where(x => x.Text != "").ToList();
-                    var formacaoElements = driver.FindElements(By.ClassName("formacao-instrutor-nome")).Where(x => x.Text != "").ToList();
-                    if(instructorElements.Count > 0)
-                    {
-                        foreach (var instructor in instructorElements)
-                        {
-                            course.Instructor += instructor.Text;
-                        }
-                        
-                    }
-                    else if(formacaoElements.Count > 0)
-                    {
-                        foreach (var instructor in formacaoElements)
-                        {
-                            course.Instructor += instructor.Text + " ";
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Nenhuma informação de instrutor encontrada");
-                        
-                    }
-                
-                }
+                SetInstructorName(course, driver);
+                SetWorkload(course, driver);
             }
             return courseList;
+        }
+
+        private void SetInstructorName(AluraCourse? course, IWebDriver driver)
+        {
+            if (course?.Name != null && (course.Name.Contains("Curso") || course.Name.Contains("Formação")))
+            {
+                driver.Navigate().GoToUrl(course.Link);
+                Thread.Sleep(new Random().Next(3000, 6000));
+                driver.FindElement(By.TagName("body")).SendKeys(Keys.Escape);
+                WebDriverWait wait = new WebDriverWait(driver, new TimeSpan(0, 0, 30));
+                wait.Until(driver => driver.FindElements(By.ClassName("instructor-title--name")));
+                wait.Until(driver => driver.FindElements(By.ClassName("formacao-instrutor-nome")));
+                var instructorElements = driver.FindElements(By.ClassName("instructor-title--name")).Where(x => x.Text != "").ToList();
+                var formacaoElements = driver.FindElements(By.ClassName("formacao-instrutor-nome")).Where(x => x.Text != "").ToList();
+                if (instructorElements.Count > 0)
+                {
+                    foreach (var instructor in instructorElements)
+                    {
+                        course.Instructor += instructor.Text;
+                    }
+
+                }
+                else if (formacaoElements.Count > 0)
+                {
+                    foreach (var instructor in formacaoElements)
+                    {
+                        course.Instructor += instructor.Text + " ";
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Nenhuma informação de instrutor encontrada");
+
+                }
+            }
+        }
+
+
+        private void SetWorkload(AluraCourse? course, IWebDriver driver)
+        {
+            if (course?.Name != null && (course.Name.Contains("Curso") || course.Name.Contains("Formação")))
+            {
+                driver.FindElement(By.TagName("body")).SendKeys(Keys.Escape);
+                WebDriverWait wait = new WebDriverWait(driver, new TimeSpan(0, 0, 30));
+                wait.Until(driver => driver.FindElements(By.ClassName("formacao-passo-carga")));
+                int retry = 0;
+                List<IWebElement> workloadFormation = new();
+                List<IWebElement> workloadCourse = new();
+                while (retry != 2)
+                {
+                    workloadFormation = driver.FindElements(By.ClassName("formacao-passo-carga")).Where(x => x.Text != "").ToList();
+                    workloadCourse = driver.FindElements(By.ClassName("courseInfo-card-wrapper-infos")).Where(x => x.Text != "").ToList();
+                    if (workloadFormation.Any() || workloadCourse.Any()) retry = 2;
+                    else
+                    {
+                        retry++; 
+                    }
+                }
+
+                if (workloadFormation.Count > 0)
+                {
+                    var courseWorkloadTotal = 0;
+                    foreach (var workload in workloadFormation)
+                    {
+                        var convertWorkloadString = Convert.ToInt32(workload.Text.Replace("h", ""));
+                        courseWorkloadTotal = Convert.ToInt32(course?.Workload?.Replace("h", "")) + convertWorkloadString;
+
+                        course.Workload = courseWorkloadTotal + "h";
+                    }
+
+                }
+                else if (workloadCourse.Count > 0)
+                {
+                    var courseWorkloadFromSite = GetFirstMatchingElement(workloadCourse);
+                    if (courseWorkloadFromSite != null) course.Workload = courseWorkloadFromSite.Text;
+                }
+                else
+                {
+                    Console.WriteLine("Nenhuma informação de instrutor encontrada");
+
+                }
+
+            }
         }
 
         private static IWebElement CheckIfElementExists(ReadOnlyCollection<IWebElement> element)
@@ -132,11 +187,7 @@ namespace CrawlerAlura.src.Application.Services
                             Name = courseText[0],
                             Description = courseText[1],
                             Link = (course.FindElement(By.TagName("a"))).GetAttribute("href")
-                    });
-                    }
-                    if (courseText.Length > 2)
-                    {
-                        Console.WriteLine("oi");
+                        });
                     }
                 }
             }
@@ -146,8 +197,26 @@ namespace CrawlerAlura.src.Application.Services
         {
             WebDriverWait wait = new WebDriverWait(driver, new TimeSpan(0, 0, 30));
             wait.Until(driver => driver.FindElements(By.XPath("/html/body/div[2]/div[2]/nav/a[2]")));
+            Thread.Sleep(new Random().Next(1500, 6000));
             var buttonNext = driver.FindElements(By.XPath("/html/body/div[2]/div[2]/nav/a[2]"));
             buttonNext[0].Click();
+        }
+
+        public static IWebElement GetFirstMatchingElement(List<IWebElement> elements)
+        {
+            string pattern = @"^\d+h$";
+            Regex regex = new Regex(pattern);
+
+            foreach (IWebElement element in elements)
+            {
+                string text = element.Text;
+
+                if (regex.IsMatch(text))
+                {
+                    return element;
+                }
+            }
+            return null;
         }
 
         public List<AluraCourse> GetAluraCourseList

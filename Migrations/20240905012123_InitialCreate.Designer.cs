@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CrawlerAlura.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240903200715_AddWorkloadToAluraCourse")]
-    partial class AddWorkloadToAluraCourse
+    [Migration("20240905012123_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

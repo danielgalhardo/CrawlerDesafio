@@ -17,7 +17,10 @@ namespace CrawlerAlura.Migrations
                     Id = table.Column<long>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true)
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    Link = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Instructor = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    Workload = table.Column<string>(type: "TEXT", maxLength: 10, nullable: true)
                 },
                 constraints: table =>
                 {
